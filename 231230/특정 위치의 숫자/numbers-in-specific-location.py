@@ -1,5 +1,4 @@
 nums = input().split(' ')
-nums = [int(n) for n in nums]
 
-answer = nums[2]+nums[4]+nums[9]
+answer = int(nums[2])+int(nums[4])+int(nums[9])
 print(answer)
