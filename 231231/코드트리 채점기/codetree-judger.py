@@ -80,13 +80,13 @@ def start(t):
 
 # 400 t J_id
 def end(t, j_id):
-    # queue 옮기기
     for task in judging:
         if task.j_id==j_id:
             judging.remove(task)
             task.endTask(t)
             history.append(task)
             heapq.heappush(waiting_judger, j_id)
+            return
 
 # 500
 def capture(t):
