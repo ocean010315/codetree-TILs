@@ -1,118 +1,115 @@
 import heapq
 
-waiting_judger = [] # queue(J_id)
-waiting_queue = [] # priority queue
-judging = []
-history = []
-
 class Task:
     def __init__(self, t, p, u):
         self.t = t
         self.p = p
         self.u = u
+        self.domain = u.split("/")[0]
 
         self.start = None
-        self.j_id = None
-
         self.end = None
     
     def __lt__(self, other):
-        if self.p!=other.p:
+        if self.p != other.p:
             return self.p < other.p
-        else: return self.t < other.t
+        else:
+            return self.t < other.t
+    
+    def gap(self):
+        return (self.end - self.start)
+    
+    def setStart(self, t):
+        self.start = t
+    
+    def setEnd(self, t):
+        self.end = t
 
-    def getDomain(self):
-        return self.u.split('/')[0]
-
-    def startTask(self, start, j_id):
-        self.start = start
-        self.j_id = j_id
-
-    def endTask(self, end):
-        self.end = end
+waiting_judger = {} # { j_id : None/task }
+waiting_queue = {} # { u : task }
+judging = {} # { domain : task(start) }
+history = {} # { domain : task(start, end) }
 
 # 100 N u0
 def init(N, u):
     global n
-    n = int(N)
+    n = N
+
     for i in range(n):
-        heapq.heappush(waiting_judger, i+1) # i+1로 machine 오름차순 정렬
-    
+        waiting_judger[i+1] = None
+
     task = Task(0, 1, u)
-    heapq.heappush(waiting_queue, task)
+    waiting_queue[u] = task
 
 # 200 t p u
 def insert(t, p, u):
-    for waiting_task in waiting_queue:
-        if waiting_task.u==u:
-            return
+    if u in waiting_queue:
+        return
     
-    task = Task(t, p, u)
-    heapq.heappush(waiting_queue, task)
+    newTask = Task(t, p, u)
+    waiting_queue[u] = newTask
 
 # 300 t
-def start(t):
-    if waiting_queue and waiting_judger:
-        target = heapq.heappop(waiting_queue)
+def startJudging(t):
+    judger = None
+    for j_id, task in waiting_judger.items():
+        if task is None:
+            judger = j_id
+            break
+    
+    if judger is not None:
+        available = {}
+        for _, waitingTask in waiting_queue.items():
+            domain = waitingTask.domain
 
-        # domain
-        domain = target.getDomain()
-        i = len(judging)
-        while(i):
-            i -= 1
-            if domain==judging[i].getDomain():
-                if waiting_queue:
-                    tmp = heapq.heappop(waiting_queue)
-                    heapq.heappush(waiting_queue, target)    
-                    target = tmp
-                    i = len(judging)
-                
-        # start + 3 * gap
-        if history:
-            for i in range(len(history)):
-                lastTask = history[len(history)-i-1]
-                if lastTask.getDomain()==target.getDomain():
-                    lastStart = lastTask.start
-                    lastEnd = lastTask.end
-                    if t < (lastStart+(lastEnd-lastStart)*3):
-                        heapq.heappush(waiting_queue, target)
-                        return
-        
-        # start
-        judger = heapq.heappop(waiting_judger)
-        target.startTask(t, judger)
-        judging.append(target)
+            if domain in judging:
+                continue
+            
+            if domain in history:
+                current = history[domain]
+                if t < current.start + 3*current.gap():
+                    continue
+            
+            available[waitingTask.u] = waitingTask
 
-# 400 t J_id
-def end(t, j_id):
-    for task in judging:
-        if task.j_id==j_id:
-            judging.remove(task)
-            task.endTask(t)
-            history.append(task)
-            heapq.heappush(waiting_judger, j_id)
-            return
+        if available:
+            available_queue = list(available.values())
+            heapq.heapify(available_queue)
+            target = heapq.heappop(available_queue)
+            if target is not None:
+                del waiting_queue[target.u]
+                target.setStart(t)
+                waiting_judger[judger] = target
+                judging[target.domain] = target
 
-# 500
+# 400 t j_id
+def endJudging(t, j_id):
+    if j_id in waiting_judger and waiting_judger[j_id] is not None:
+        endTask = waiting_judger[j_id]
+        del judging[endTask.domain]
+        endTask.setEnd(t)
+        history[endTask.domain] = endTask
+        waiting_judger[j_id] = None
+
+# 500 t
 def capture(t):
     print(len(waiting_queue))
-
 
 ### main ###
 Q = int(input())
 while(Q):
     query = input().split(' ')
     if query[0]=="100":
-        init(query[1], query[2])
+        init(int(query[1]), query[2])
 
     elif query[0]=="200":
         insert(int(query[1]), int(query[2]), query[3])
 
     elif query[0]=="300":
-        start(int(query[1]))
+        startJudging(int(query[1]))
 
     elif query[0]=="400":
-        end(int(query[1]), int(query[2]))
+        endJudging(int(query[1]), int(query[2]))
 
     elif query[0]=="500":
         capture(int(query[1]))
