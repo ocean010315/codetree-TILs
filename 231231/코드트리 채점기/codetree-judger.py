@@ -57,11 +57,15 @@ def start(t):
 
         # domain
         domain = target.getDomain()
-        for j in judging:
-            if domain==j.getDomain(): # 같은 도메인이라면 다음 task 확인하기
-                tmp = heapq.heappop(waiting_queue)
-                heapq.heappush(waiting_queue, target)    
-                target = tmp
+        i = len(judging)
+        while(i):
+            i -= 1
+            if domain==judging[i].getDomain():
+                if waiting_queue:
+                    tmp = heapq.heappop(waiting_queue)
+                    heapq.heappush(waiting_queue, target)    
+                    target = tmp
+                    i = len(judging)
                 
         # start + 3 * gap
         if history:
@@ -97,7 +101,6 @@ def capture(t):
 ### main ###
 Q = int(input())
 while(Q):
-
     query = input().split(' ')
     if query[0]=="100":
         init(query[1], query[2])
